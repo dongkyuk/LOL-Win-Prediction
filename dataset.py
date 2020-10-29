@@ -4,7 +4,6 @@ import pandas as pd
 import json
 import collections
 from scipy.stats import skew, tstd, tmean
-from flatten_dict import flatten
 from time import sleep
 from progress.bar import Bar
 
@@ -122,7 +121,7 @@ def player_info(accountId):
         summonerId = summoner['id']
         league = watcher.league.by_summoner(my_region, summonerId)[0]
     except:
-        return None
+        return None, None, None, None, None
 
     level = summoner['summonerLevel']
     total_win = league['wins']
@@ -144,22 +143,27 @@ def player_info(accountId):
     return win_mean, win_std, win_skew, level, hot_streak
 
 
+@print_if_complete
 def feature_extraction(match_df):
     match_lst = [match_df.columns.values.tolist()] + match_df.values.tolist()
-    with Bar('Processing...') as bar:
+
+    new_col = []
+    for name_index in range(2, 7):
+        for extra in ['win_mean', 'win_std', 'win_skew', 'level', 'hot_streak']:
+            new_col.append(str(match_lst[0][name_index]) + '_' + extra)
+
+    with Bar('Processing...', max=len(match_lst)-1) as bar:
         for index, match_data in enumerate(match_lst[1:]):
             for role_index in range(2, 7):
                 match_data = match_data + \
                     list(player_info(match_data[role_index]))
-            match_lst[index] = match_data
+            match_lst[index+1] = match_data
             bar.next()
-
-    new_col = []
-    for name_index in range(2,7):
-        for extra in ['win_mean', 'win_std', 'win_skew', 'level', 'hot_streak']:
-            new_col.append(str(match_data[0][name_index]) + extra)
-    
-    match_df = pd.DataFrame(match_lst[1:], columns=match_lst[0]+new_col)
+            match_df = pd.DataFrame(
+                match_lst[1:index+1], columns=match_lst[0]+new_col)
+            match_df = match_df.drop(["match_id", "bot_support",
+                                      "bot_carry", "mid", "jungle", "top"], axis=1)
+            match_df.to_csv('data/match_feature.csv', index=False)
 
     return match_df
 
@@ -192,13 +196,12 @@ def main():
     match_df.to_csv('data/match.csv', index=False)
     '''
     match_df = pd.read_csv("data/match.csv")
-    match_df =match_df.head(5)
     match_df = feature_extraction(match_df)
     match_df.to_csv('data/match_feature.csv', index=False)
 
 
 if __name__ == "__main__":
     main()
-    #me = watcher.summoner.by_id(my_region, my_summoner_id)
-    #accountId = me['accountId']
+    # me = watcher.summoner.by_id(my_region, my_summoner_id)
+    # accountId = me['accountId']
     # player_info('pRzYZSsbfU4Ha0SlczOED7iT_mtDn-BuKvaLMZNNP1w8ZfEvVO_UV3F8')
