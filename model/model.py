@@ -30,6 +30,7 @@ class Model():
 
     def evaluate(self, X_test, y_test):
         Y_pred = self.model.predict_proba(X_test)[:,1]
+        print(min(Y_pred), max(Y_pred))
         print("Acc Score : {}".format(
             accuracy_score(y_test, self.model.predict(X_test))))
         print("Roc auc Score : {}".format(
