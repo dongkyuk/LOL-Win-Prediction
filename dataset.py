@@ -153,8 +153,13 @@ def feature_extraction(match_df):
                     list(player_info(match_data[role_index]))
             match_lst[index] = match_data
             bar.next()
+
+    new_col = []
+    for name_index in range(2,7):
+        for extra in ['win_mean', 'win_std', 'win_skew', 'level', 'hot_streak']:
+            new_col.append(str(match_data[0][name_index]) + extra)
     
-    match_df = pd.DataFrame(match_lst[1:], columns=match_lst[0])
+    match_df = pd.DataFrame(match_lst[1:], columns=match_lst[0]+new_col)
 
     return match_df
 
@@ -187,7 +192,7 @@ def main():
     match_df.to_csv('data/match.csv', index=False)
     '''
     match_df = pd.read_csv("data/match.csv")
-
+    match_df =match_df.head(5)
     match_df = feature_extraction(match_df)
     match_df.to_csv('data/match_feature.csv', index=False)
 
