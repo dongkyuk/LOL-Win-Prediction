@@ -18,7 +18,7 @@ train_df_2 = pd.read_csv('data/match_feature_2.csv')
 train_df = pd.concat([train_df_1, train_df_2])
 del train_df_1
 del train_df_2
-#train_df = train_df.head(4000)
+#train_df = train_df.head(2500)
 train_df = train_df.fillna(0)
 train_df['mean_mult'] = train_df.apply(lambda row: label_race(row), axis=1)
 
@@ -36,7 +36,7 @@ X = pd.DataFrame(x_scaled)
 
 
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.01, random_state=42)
+    X, y, test_size=0.3, random_state=42)
 '''
 print("Roc auc Score : {}".format(roc_auc_score(y, train_df['mean_mult'])))
 temp = train_df['mean_mult'].values.tolist()
@@ -46,12 +46,27 @@ print("Acc Score : {}".format(accuracy_score(y, temp)))
 '''
 
 model = Lgbm_Model()
-param = model.tune(X, y)
+#param = model.tune(X, y)
 model.train(X_train, y_train)
 # model.save("Lgbm")
 # model.evaluate(X_test, y_test)
 score = model.evaluate(X_train, y_train)
 score = model.evaluate(X_test, y_test)
+arr = model.get().feature_importance()
+
+columns = list(train_df.columns)
+for elem in ['win']:
+    columns.remove(elem)
+print(columns)
+# feature importance
+
+print(model.get().feature_importance)
+# plot
+
+plt.bar(columns, arr)
+plt.show()
+
+
 '''
 Y_pred_prob = model.predict(X_train)
 print("example output : ", Y_pred_prob[:10])

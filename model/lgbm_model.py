@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 class Lgbm_Model(Model):
     def __init__(self):
         self.parameters = self._create()
+        self.model = None
 
     @print_if_complete
     def train(self, X_train, y, parameters=None):
