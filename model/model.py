@@ -18,6 +18,11 @@ class Model():
         return self.model
 
     @print_if_complete
+    def predict(self, X):
+        Y_pred_prob = self.model.predict(X)
+        return Y_pred_prob
+
+    @print_if_complete
     def save(self, name):
         print(self.model)
         filename = 'model/'+name+'_model.sav'
@@ -30,6 +35,7 @@ class Model():
 
     def evaluate(self, X_test, y_test):
         Y_pred = self.model.predict_proba(X_test)[:,1]
+        print(Y_pred)
         print(min(Y_pred), max(Y_pred))
         print("Acc Score : {}".format(
             accuracy_score(y_test, self.model.predict(X_test))))

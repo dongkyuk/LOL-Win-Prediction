@@ -8,7 +8,7 @@ from time import sleep
 from progress.bar import Bar
 
 # Global variables
-api_key = 'RGAPI-003ae31a-e515-4040-9153-1fe1ef00a038'
+api_key = 'RGAPI-1a444448-c73e-4fa4-9b7b-44c31ce70f98'
 watcher = LolWatcher(api_key)
 my_region = 'kr'
 my_summoner_id = 'HardcoreZealot'
@@ -153,7 +153,7 @@ def feature_extraction(match_df):
             new_col.append(str(match_lst[0][name_index]) + '_' + extra)
 
     with Bar('Processing...', max=len(match_lst)-1) as bar:
-        for index, match_data in enumerate(match_lst[1:]):
+        for index, match_data in enumerate(match_lst[4030:]):
             for role_index in range(2, 7):
                 match_data = match_data + \
                     list(player_info(match_data[role_index]))
@@ -163,7 +163,7 @@ def feature_extraction(match_df):
                 match_lst[1:index+1], columns=match_lst[0]+new_col)
             match_df = match_df.drop(["match_id", "bot_support",
                                       "bot_carry", "mid", "jungle", "top"], axis=1)
-            match_df.to_csv('data/match_feature.csv', index=False)
+            match_df.to_csv('data/match_feature_2.csv', index=False)
 
     return match_df
 
