@@ -35,18 +35,16 @@ class Model():
 
     def evaluate(self, X_test, y_test):
         Y_pred = self.model.predict_proba(X_test)[:,1]
-        print(Y_pred)
-        print(min(Y_pred), max(Y_pred))
         print("Acc Score : {}".format(
             accuracy_score(y_test, self.model.predict(X_test))))
         print("Roc auc Score : {}".format(
             roc_auc_score(y_test, Y_pred)))
-        
+        '''
         try:
             cross_val = cross_val_score(self.model, X_test, y_test, cv=5)
             print("Cross Score : {}".format(cross_val))
-            print(sum(cross_val) / len(cross_val))
+            print("Overall Cross Score : {}".format(sum(cross_val) / len(cross_val)))
             return sum(cross_val) / len(cross_val)
         except:
             return 0
-        
+        '''

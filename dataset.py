@@ -8,7 +8,7 @@ from time import sleep
 from progress.bar import Bar
 
 # Global variables
-api_key = 'RGAPI-1a444448-c73e-4fa4-9b7b-44c31ce70f98'
+api_key = 'RGAPI-2d4818d4-0296-4e68-8c08-19991357d2f6'
 watcher = LolWatcher(api_key)
 my_region = 'kr'
 my_summoner_id = 'HardcoreZealot'
@@ -153,7 +153,7 @@ def feature_extraction(match_df):
             new_col.append(str(match_lst[0][name_index]) + '_' + extra)
 
     with Bar('Processing...', max=len(match_lst)-1) as bar:
-        for index, match_data in enumerate(match_lst[4030:]):
+        for index, match_data in enumerate(match_lst[1:]):
             for role_index in range(2, 7):
                 match_data = match_data + \
                     list(player_info(match_data[role_index]))
@@ -163,7 +163,7 @@ def feature_extraction(match_df):
                 match_lst[1:index+1], columns=match_lst[0]+new_col)
             match_df = match_df.drop(["match_id", "bot_support",
                                       "bot_carry", "mid", "jungle", "top"], axis=1)
-            match_df.to_csv('data/match_feature_2.csv', index=False)
+            match_df.to_csv('data/match_feature_test.csv', index=False)
 
     return match_df
 
@@ -177,27 +177,41 @@ def main():
     silver1_3 = watcher.league.entries(
         my_region, 'RANKED_SOLO_5x5', 'SILVER', 'I', 3)
 
-    silver1 = silver1_1 + silver1_2 + silver1_3
+    silver1_4 = watcher.league.entries(
+        my_region, 'RANKED_SOLO_5x5', 'SILVER', 'I', 4)
 
-    id_lst = league_id_lst(silver1)
-    with open("data/id_lst.txt", "w") as fp:
+    #silver1 = silver1_1 + silver1_2 + silver1_3
+    silver1 = silver1_4
+
+    gold1 = watcher.league.entries(
+        my_region, 'RANKED_SOLO_5x5', 'GOLD', 'III', 1)
+
+    id_lst = league_id_lst(gold1)
+    with open("data/id_lst_gold.txt", "w") as fp:
         json.dump(id_lst, fp)
 
-    with open("data/id_lst.txt", "r") as fp:
+    with open("data/id_lst_gold.txt", "r") as fp:
         id_lst = json.load(fp)
 
     match_id_lst = unique_match_id_lst(id_lst)
-    with open("data/match_id_lst.txt", "w") as fp:
+    with open("data/match_id_lst_gold.txt", "w") as fp:
         json.dump(match_id_lst, fp)
 
-    with open("data/match_id_lst.txt", "r") as fp:
+    with open("data/match_id_lst_gold.txt", "r") as fp:
         match_id_lst = json.load(fp)
+
     match_df = match_info(match_id_lst)
-    match_df.to_csv('data/match.csv', index=False)
-    '''
-    match_df = pd.read_csv("data/match.csv")
+    match_df.to_csv('data/match_gold.csv', index=False)
+'''
+    match_df = pd.read_csv("data/match_test.csv")
     match_df = feature_extraction(match_df)
-    match_df.to_csv('data/match_feature.csv', index=False)
+    match_df.to_csv('data/match_feature_test.csv', index=False)
+
+
+def predict_feature(accountId_lst):
+    match_data = [100]
+    for accountId in accountId_lst:
+        match_data = match_data + list(player_info(accountId))
 
 
 if __name__ == "__main__":
