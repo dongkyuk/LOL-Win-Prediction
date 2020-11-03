@@ -25,7 +25,7 @@ class Model():
     @print_if_complete
     def save(self, name):
         print(self.model)
-        filename = 'model/'+name+'_model.sav'
+        filename = 'model/saved_model/'+name+'_model.sav'
         pickle.dump(self.model, open(filename, 'wb'))
 
     @print_if_complete

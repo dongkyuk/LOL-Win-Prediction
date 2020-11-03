@@ -46,18 +46,17 @@ class Lgbm_Model(Model):
     @print_if_complete
     def _create(self):
         parameters = {
-            # 'application': 'binary',
             'objective': 'binary',
             'metric': 'auc',
-            'verbosity': -1,
-            "boosting_type": "gbdt",
-            'feature_pre_filter': False,
-            'lambda_l1': 0,
-            'lambda_l2': 0,
-            'num_leaves': 209,
-            'feature_fraction': 0.5,
-            'bagging_fraction': 1.0,
-            'bagging_freq': 0,
+            'verbosity': -1, 
+            'boosting_type': 'gbdt', 
+            'feature_pre_filter': False, 
+            'lambda_l1': 7.445024824676759,
+            'lambda_l2': 8.175218402955979e-07, 
+            'num_leaves': 2, 
+            'feature_fraction': 0.9159999999999999, 
+            'bagging_fraction': 0.6373522802414938,
+            'bagging_freq': 1, 
             'min_child_samples': 20
         }
 
@@ -104,4 +103,3 @@ class Lgbm_Model(Model):
     def plot_importance(self):
         lgb.plot_importance(self.model)
         plt.show()
-

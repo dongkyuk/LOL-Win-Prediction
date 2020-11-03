@@ -6,9 +6,10 @@ import collections
 from scipy.stats import skew, tstd, tmean
 from time import sleep
 from progress.bar import Bar
+from multiprocessing.dummy import Pool as ThreadPool
 
 # Global variables
-api_key = 'RGAPI-2d4818d4-0296-4e68-8c08-19991357d2f6'
+api_key = 'RGAPI-90b27c39-5cdc-4a06-84a9-25b77a6b225d'
 watcher = LolWatcher(api_key)
 my_region = 'kr'
 my_summoner_id = 'HardcoreZealot'
@@ -17,13 +18,14 @@ my_summoner_id = 'HardcoreZealot'
 @print_if_complete
 def league_id_lst(league):
     # Get user puuid list in certain league
-    id_lst = list()
-    with Bar('Processing...') as bar:
-        for summoner_info in league:
-            id = summoner_info['summonerId']
-            summoner = watcher.summoner.by_id(my_region, id)
-            id_lst.append(summoner['accountId'])
-            bar.next()
+    def single_league_id(summoner_info):
+        id = summoner_info['summonerId']
+        summoner = watcher.summoner.by_id(my_region, id)
+        return summoner['accountId']
+
+    pool = ThreadPool(3)
+    id_lst = pool.map(single_league_id, league)
+
     return id_lst
 
 
@@ -31,17 +33,22 @@ def league_id_lst(league):
 def unique_match_id_lst(id_lst, count=10):
     # Get unqiue match id lst from a given list of user puuid
     res_lst = list()
-    with Bar('Processing...') as bar:
-        for id in id_lst:
-            try:
-                match_lst = watcher.match.matchlist_by_account(
-                    my_region, id, '420', end_index=count)
-            except:
-                continue
-            for match in match_lst['matches']:
-                res_lst.append(match['gameId'])
-            res_lst = list(set(res_lst))  # Remove Duplicates
-            bar.next()
+
+    def unique_match_id_single(match):
+        return match['gameId']
+
+    for id in id_lst:
+        try:
+            match_lst = watcher.match.matchlist_by_account(
+                my_region, id, '420', end_index=count)
+        except:
+            continue
+        pool = ThreadPool(3)
+        res_lst = res_lst + \
+            pool.map(unique_match_id_single, match_lst['matches'])
+
+    res_lst = list(set(res_lst))  # Remove Duplicates
+
     return res_lst
 
 
@@ -152,18 +159,16 @@ def feature_extraction(match_df):
         for extra in ['win_mean', 'win_std', 'win_skew', 'level', 'hot_streak']:
             new_col.append(str(match_lst[0][name_index]) + '_' + extra)
 
-    with Bar('Processing...', max=len(match_lst)-1) as bar:
-        for index, match_data in enumerate(match_lst[1:]):
-            for role_index in range(2, 7):
-                match_data = match_data + \
-                    list(player_info(match_data[role_index]))
-            match_lst[index+1] = match_data
-            bar.next()
-            match_df = pd.DataFrame(
-                match_lst[1:index+1], columns=match_lst[0]+new_col)
-            match_df = match_df.drop(["match_id", "bot_support",
-                                      "bot_carry", "mid", "jungle", "top"], axis=1)
-            match_df.to_csv('data/match_feature_test.csv', index=False)
+    for index, match_data in enumerate(match_lst[1:]):
+        for role_index in range(2, 7):
+            match_data = match_data + \
+                list(player_info(match_data[role_index]))
+        match_lst[index+1] = match_data
+        match_df = pd.DataFrame(
+            match_lst[1:index+1], columns=match_lst[0]+new_col)
+        match_df = match_df.drop(["match_id", "bot_support",
+                                  "bot_carry", "mid", "jungle", "top"], axis=1)
+        match_df.to_csv('data/match_feature_test.csv', index=False)
 
     return match_df
 
@@ -180,9 +185,13 @@ def main():
     silver1_4 = watcher.league.entries(
         my_region, 'RANKED_SOLO_5x5', 'SILVER', 'I', 4)
 
+    silver1_5 = watcher.league.entries(
+        my_region, 'RANKED_SOLO_5x5', 'SILVER', 'I', 5)
+
+
     #silver1 = silver1_1 + silver1_2 + silver1_3
     silver1 = silver1_4
-
+    '''
     gold1 = watcher.league.entries(
         my_region, 'RANKED_SOLO_5x5', 'GOLD', 'III', 1)
 
@@ -199,19 +208,39 @@ def main():
 
     with open("data/match_id_lst_gold.txt", "r") as fp:
         match_id_lst = json.load(fp)
-
+    '''
     match_df = match_info(match_id_lst)
     match_df.to_csv('data/match_gold.csv', index=False)
-'''
-    match_df = pd.read_csv("data/match_test.csv")
+
+    match_df = pd.read_csv("data/match_gold.csv")
     match_df = feature_extraction(match_df)
-    match_df.to_csv('data/match_feature_test.csv', index=False)
+    match_df.to_csv('data/match_feature_gold.csv', index=False)
+    '''
 
+@print_if_complete
+def predict_feature(summonerId_lst, model):
+    accountId_lst = [watcher.summoner.by_name(
+        my_region, id)['accountId'] for id in summonerId_lst]
 
-def predict_feature(accountId_lst):
     match_data = [100]
-    for accountId in accountId_lst:
-        match_data = match_data + list(player_info(accountId))
+    mean_mult = 1
+
+    pool = ThreadPool(5)
+
+    def temp_append(accountId):
+        add = list(player_info(accountId))
+        return add, add[0]
+
+    results = pool.map(temp_append, accountId_lst)
+    new = []
+    for (x, y) in results:
+        mean_mult = mean_mult * y
+        new = new + x
+    match_data = match_data + new
+
+    match_data.append(mean_mult)
+    # print(match_data)
+    return model.predict([match_data])
 
 
 if __name__ == "__main__":
@@ -219,3 +248,20 @@ if __name__ == "__main__":
     # me = watcher.summoner.by_id(my_region, my_summoner_id)
     # accountId = me['accountId']
     # player_info('pRzYZSsbfU4Ha0SlczOED7iT_mtDn-BuKvaLMZNNP1w8ZfEvVO_UV3F8')
+
+    '''
+    import pickle
+    model = pickle.load(open('model/saved_model/Lgbm_model.sav', 'rb'))
+    #['전설의 도우너', '사스가수수', '아마테라스탈론', 'SaintVansan', '워터스킨']
+    #['나 현우 아니다', 'The White Artist', '아마테라스탈론', 'SaintVansan', '황제고양이']
+    #value = predict_feature(['SaintVansan']*5, model)
+    value = predict_feature(['나 현우 아니다', 'The White Artist', '아마테라스탈론', 'SaintVansan', '황제고양이'], model)
+    mean = 0.5
+    std = 0.073
+    diff = abs(value - mean)
+    if diff < std:
+        print("Normal")
+    elif diff < std * 2:
+        print("Abnormal")
+    print(value)
+    '''

@@ -13,6 +13,7 @@ def label_race(row):
 
 def get_X_y(train_df, min_max_scaler=None):
     train_df = train_df.dropna()
+    train_df = train_df.drop_duplicates()
     train_df['mean_mult'] = train_df.apply(lambda row: label_race(row), axis=1)
 
     y = train_df['win']
@@ -34,19 +35,10 @@ def get_X_y(train_df, min_max_scaler=None):
     return X, y, min_max_scaler
 
 
-'''
-X = X.drop(columns=['mean_mult', 'team'])
-X = X.drop(columns= ['bot_support_hot_streak', 'bot_carry_hot_streak', 'mid_hot_streak', 'jungle_hot_streak', 'top_hot_streak'])
-#X = X.drop(columns= ['bot_support_level', 'bot_carry_level', 'mid_level', 'jungle_level', 'top_level'])
-X = X.drop(columns= ['bot_support_win_mean', 'bot_carry_win_mean', 'mid_win_mean', 'jungle_win_mean', 'top_win_mean'])
-X = X.drop(columns= ['bot_support_win_std', 'bot_carry_win_std', 'mid_win_std', 'jungle_win_std', 'top_win_std'])
-X = X.drop(columns= ['bot_support_win_skew', 'bot_carry_win_skew', 'mid_win_skew', 'jungle_win_skew', 'top_win_skew'])
-'''
-
-
-def check_train_size_curve():
+def check_train_size_curve(X, y):
     cross_val_score_lst = []
-    size_lst = [0.19, 0.18, 0.17, 0.16, 0.15, 0.14, 0.13, 0.12, 0.11]
+    #size_lst = [0.19, 0.18, 0.17, 0.16, 0.15, 0.14, 0.13, 0.12, 0.11]
+    size_lst = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
     for size in size_lst:
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=size, random_state=42)
@@ -61,32 +53,32 @@ def check_train_size_curve():
 
 def main():
     train_df = pd.read_csv('data/match_feature.csv')
-    test_df = pd.read_csv('data/match_feature_test.csv')
-
 
     # Split X, y and scale
     X, y, min_max_scaler = get_X_y(train_df)
-    X_eval, y_eval, _ = get_X_y(test_df, min_max_scaler)
+    print("Total dataset size : ", len(X))
 
-    X, y = pd.concat([X, X_eval]), pd.concat([y, y_eval])
-    print(len(X))
-
-
-    # check_train_size_curve()
+    #check_train_size_curve(X, y)
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42)
+        X, y, test_size=0.01, random_state=42)
 
     model = Lgbm_Model()
     #param = model.tune(X_train, y_train)
     model.train(X_train, y_train, X_test, y_test)
-    # model.save("Lgbm")
+    #model.save("Lgbm")
     model.evaluate(X_train, y_train, cross_val=True)
     model.evaluate(X_test, y_test)
-    model.evaluate(X_eval, y_eval)
-
+    
+    res = model.predict(X_train)
+    print(tstd(res))
+    print(tmean(res))
+    
+    plt.hist(res, bins=100)
+    plt.show()
+    
+    
     model.plot_importance()
 
 
 if __name__ == "__main__":
     main()
-
